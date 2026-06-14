@@ -1,0 +1,26 @@
+#python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+#virtual environments
+venv/
+.venv/
+.env
+
+#backend generated files 
+backend/chroma_db/
+backend/data/
+backend/**/__pycache__/
+
+#React
+chatbot/node_modules/
+chatbot/dist/
+
+#vscode
+.vscode/
+
+#os files
+.DS_store
+Thumbs.db
