@@ -53,7 +53,7 @@ function ChunkPanel({ chunks, isOpen, onClose }) {
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
         {chunks.map((chunk, i) => (
           <div key={i} style={{
-            background: "#141414", border: "1px solid #1e1e1e",
+            background: theme.text, border: "1px solid #1e1e1e",
             borderRadius: 8, padding: "10px 12px",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -166,7 +166,7 @@ function SourceList({ citations }) {
     <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #1e1e1e" }}>
       <div style={{
         fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-        color: "#3a3a3a", letterSpacing: "0.15em", marginBottom: 6,
+        color: theme.text, letterSpacing: "0.15em", marginBottom: 6,
       }}>SOURCES</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
         {unique.map((c, i) => (
@@ -210,7 +210,7 @@ function MessageBubble({ msg, onShowChunks }) {
         fontSize: 12, fontFamily: "'IBM Plex Mono', monospace",
         color: isUser ? "#7b8cde" : "#c8a96e", fontWeight: 600,
       }}>
-        {isUser ? "U" : "AI"}
+        {isUser ? "U" : "✦"}
       </div>
 
       {/* Bubble */}
@@ -357,7 +357,7 @@ function FileUploadArea({ uploadedFiles, onUpload, onRemove }) {
         <div style={{ marginTop: 7, display: "flex", flexWrap: "wrap", gap: 5 }}>
           {uploadedFiles.map((f, i) => (
             <div key={i} style={{
-              background: "#111", border: "1px solid #1e1e1e",
+              background: theme.card, border: `1px solid ${theme.border}`,
               borderRadius: 5, padding: "4px 8px 4px 10px",
               display: "flex", alignItems: "center", gap: 6,
               fontSize: 10, color: "#666", fontFamily: "'IBM Plex Mono', monospace",
@@ -506,7 +506,7 @@ const fetchReply = async (text) => {
         @keyframes pulse   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
         @keyframes spin    { to { transform:rotate(360deg); } }
         @keyframes slideIn { from { transform:translateX(100%); } to { transform:translateX(0); } }
-        textarea::placeholder { color: #3a3a3a; }
+        textarea::placeholder { color: #6b7280; }
       `}</style>
 
       <div style={{ height: "100vh", background: theme.background, display: "flex", flexDirection: "column", color: theme.text, fontFamily: "'IBM Plex Sans', sans-serif" }}>
@@ -563,13 +563,15 @@ const fetchReply = async (text) => {
           {isEmpty ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 32, paddingBottom: 40 }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ width: 48, height: 48, borderRadius: "50%", border: "1px solid #2a2a2a", background: "#141414", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 20 }}>✦</div>
-                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#3a3a3a", letterSpacing: "0.2em" }}>HOW CAN I HELP YOU TODAY?</div>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", border: `1px solid ${theme.border}`, background: darkMode ? "#141414" : "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 20 }}><span style={{ color: darkMode ? "#ffffff" : "#000000" }}>
+  ✦
+</span></div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: darkMode ? "#3a3a3a" : "#111111", letterSpacing: "0.2em" }}>HOW CAN I HELP YOU TODAY?</div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, width: "100%", maxWidth: 460 }}>
                 {SUGGESTIONS.map((s, i) => (
                   <button key={i} onClick={() => handleSend(s)}
-                    style={{ background: "#111", border: "1px solid #1e1e1e", borderRadius: 8, padding: "10px 12px", textAlign: "left", cursor: "pointer", color: "#555", fontSize: 11.5, lineHeight: 1.5, fontFamily: "'IBM Plex Sans', sans-serif" }}
+                    style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 8, padding: "10px 12px", textAlign: "left", cursor: "pointer", color: "#555", fontSize: 11.5, lineHeight: 1.5, fontFamily: "'IBM Plex Sans', sans-serif" }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.color = "#888"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1e1e1e"; e.currentTarget.style.color = "#555"; }}>
                     {s}
@@ -582,7 +584,7 @@ const fetchReply = async (text) => {
               {messages.map((msg) =>
                 msg.streaming && msg.content === "" ? (
                   <div key={msg.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 20 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#1a1a1a", border: "1px solid #2a2a2a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", color: "#c8a96e", fontWeight: 600, flexShrink: 0 }}>AI</div>
+                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#1a1a1a", border: "1px solid #2a2a2a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", color: "#c8a96e", fontWeight: 600, flexShrink: 0 }}>✦</div>
                     <div style={{ background: "#141414", border: "1px solid #222", borderRadius: "4px 16px 16px 16px", padding: "11px 15px" }}>
                       <TypingDots />
                     </div>
@@ -611,7 +613,7 @@ const fetchReply = async (text) => {
             )}
 
             {/* Text input row */}
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", background: "#111", border: "1px solid #222", borderRadius: 12, padding: "8px 8px 8px 14px" }}
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 12, padding: "8px 8px 8px 14px" }}
               onFocusCapture={(e) => (e.currentTarget.style.borderColor = "#333")}
               onBlurCapture={(e) => (e.currentTarget.style.borderColor = "#222")}>
 
@@ -648,18 +650,18 @@ const fetchReply = async (text) => {
               <textarea ref={taRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey}
                 placeholder="Ask me anything... (Enter to send, Shift+Enter for new line)"
                 rows={1}
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#d4cdc0", fontSize: 13.5, lineHeight: 1.6, fontWeight: 300, resize: "none", maxHeight: 120, overflowY: "auto", paddingTop: 2, fontFamily: "'IBM Plex Sans', sans-serif" }}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: theme.text, fontSize: 13.5, lineHeight: 1.6, fontWeight: 300, resize: "none", maxHeight: 120, overflowY: "auto", paddingTop: 2, fontFamily: "'IBM Plex Sans', sans-serif" }}
                 onInput={(e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }}
               />
               <button onClick={() => handleSend()} disabled={!input.trim() || loading}
                 style={{ width: 34, height: 34, borderRadius: 8, border: "none", background: input.trim() && !loading ? "#c8a96e" : "#1e1e1e", cursor: input.trim() && !loading ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.15s" }}>
                 {loading
                   ? <div style={{ width: 14, height: 14, border: "2px solid #333", borderTop: "2px solid #888", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={input.trim() ? "#1a1a1a" : "#333"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke = {darkMode ? "#1a1a1a" : "#ffffff"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
                 }
               </button>
             </div>
-            <div style={{ maxWidth: 700, margin: "6px auto 0", textAlign: "center", fontSize: 9.5, color: "#2a2a2a", fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.08em" }}>
+            <div style={{ maxWidth: 700, margin: "6px auto 0", textAlign: "center", fontSize: 9.5, color: darkMode ? "#2a2a2a" : "#6b7280", fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.08em" }}>
               SHIFT+ENTER FOR NEW LINE · POWERED BY QWEN  VIA OLLAMA
             </div>
           </div>
