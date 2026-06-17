@@ -26,7 +26,7 @@ function TypingDots() {
 }
 
 // ─── CHUNK PANEL ──────────────────────────────────────────────────────────────
-function ChunkPanel({ chunks, isOpen, onClose }) {
+function ChunkPanel({ chunks, isOpen, onClose,theme}) {
   if (!isOpen || !chunks?.length) return null;
   return (
     <div style={{
@@ -159,7 +159,7 @@ function renderWithCitations(content, citations) {
 }
 
 // ─── SOURCE LIST ──────────────────────────────────────────────────────────────
-function SourceList({ citations }) {
+function SourceList({ citations,theme }) {
   if (!citations?.length) return null;
   const unique = Array.from(new Map(citations.map((c) => [c.source, c])).values());
   return (
@@ -187,7 +187,7 @@ function SourceList({ citations }) {
 }
 
 // ─── MESSAGE BUBBLE ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, onShowChunks }) {
+function MessageBubble({ msg, onShowChunks,theme }) {
   const isUser = msg.role === "user";
   const hasCitations = msg.citations?.length > 0;
   const hasChunks = msg.chunks?.length > 0;
@@ -236,7 +236,7 @@ function MessageBubble({ msg, onShowChunks }) {
         </div>
 
         {/* Source list */}
-        {!isUser && hasCitations && !msg.streaming && <SourceList citations={msg.citations} />}
+        {!isUser && hasCitations && !msg.streaming && <SourceList citations={msg.citations} theme={theme}/>}
 
         {/* Chunks button */}
         {!isUser && hasChunks && !msg.streaming && (
@@ -261,7 +261,7 @@ function MessageBubble({ msg, onShowChunks }) {
 }
 
 // ─── FILE UPLOAD AREA ─────────────────────────────────────────────────────────
-function FileUploadArea({ uploadedFiles, onUpload, onRemove }) {
+function FileUploadArea({ uploadedFiles, onUpload, onRemove,theme }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -591,7 +591,8 @@ const fetchReply = async (text) => {
                   </div>
                 ) : (
                   <MessageBubble key={msg.id} msg={msg}
-                    onShowChunks={(chunks) => setChunkPanel({ open: true, chunks })} />
+                    onShowChunks={(chunks) => setChunkPanel({ open: true, chunks })}
+                    theme={theme} />
                 )
               )}
               <div ref={bottomRef} />
@@ -609,6 +610,7 @@ const fetchReply = async (text) => {
                 uploadedFiles={uploadedFiles}
                 onUpload={(files) => setUploadedFiles((prev) => [...prev, ...files])}
                 onRemove={(i) => setUploadedFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                theme={theme}
               />
             )}
 
@@ -657,7 +659,7 @@ const fetchReply = async (text) => {
                 style={{ width: 34, height: 34, borderRadius: 8, border: "none", background: input.trim() && !loading ? "#c8a96e" : "#1e1e1e", cursor: input.trim() && !loading ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.15s" }}>
                 {loading
                   ? <div style={{ width: 14, height: 14, border: "2px solid #333", borderTop: "2px solid #888", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke = {darkMode ? "#1a1a1a" : "#ffffff"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
                 }
               </button>
             </div>
@@ -673,6 +675,7 @@ const fetchReply = async (text) => {
         chunks={chunkPanel.chunks}
         isOpen={chunkPanel.open}
         onClose={() => setChunkPanel({ open: false, chunks: [] })}
+        theme={theme}
       />
     </>
   );

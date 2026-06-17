@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from services.retriever import retrieve_chunks
-from services.generator import generate_answer
+
+from services.agent import agentic_answer
 
 router = APIRouter()
 
@@ -17,28 +17,14 @@ class DocumentChatRequest(BaseModel):
 @router.post("/document-chat")
 async def document_chat(request: DocumentChatRequest):
 
-    chunks = retrieve_chunks(
+    result = agentic_answer(
         request.query,
         request.top_k
     )
 
-    answer = generate_answer(
-        request.query,
-        chunks
-    )
-
-    citations = []
-
-    for chunk in chunks:
-        citations.append({
-            "source": chunk["source"],
-            "page": chunk["page"],
-            "text": chunk["text"]
-        })
-
     return {
         "mode": "document",
-        "answer": answer,
-        "citations": citations,
-        "chunks": chunks
+        "answer": result["answer"],
+        "citations": result["citations"],
+        "chunks": result["chunks"]
     }
