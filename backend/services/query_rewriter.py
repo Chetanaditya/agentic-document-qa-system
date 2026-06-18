@@ -1,24 +1,15 @@
-from services.generator import generate
+def query_rewriter(query: str):
 
+    """
+    Query rewriting agent.
 
-def decide_action(query: str):
-    prompt = f"""
-You are a planning agent.
+    For now:
+    Returns the original query.
 
-User Query:
-{query}
+    Later:
+    - Expand abbreviations
+    - Improve retrieval quality
+    - Reformulate vague questions
+    """
 
-Decide:
-
-1. DOCUMENT_SEARCH
-2. GENERAL_CHAT
-
-Respond with only one word.
-"""
-
-    response = generate(prompt)
-
-    if "DOCUMENT_SEARCH" in response:
-        return "DOCUMENT_SEARCH"
-
-    return "GENERAL_CHAT"
+    return query

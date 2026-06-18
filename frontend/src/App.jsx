@@ -669,14 +669,6 @@ const fetchReply = async (text) => {
           </div>
         </div>
       </div>
-
-      {/* ── CHUNK SIDE PANEL ── */}
-      <ChunkPanel
-        chunks={chunkPanel.chunks}
-        isOpen={chunkPanel.open}
-        onClose={() => setChunkPanel({ open: false, chunks: [] })}
-        theme={theme}
-      />
     </>
   );
 }

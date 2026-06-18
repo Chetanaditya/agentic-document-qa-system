@@ -13,6 +13,28 @@ def retrieve_chunks(query: str, top_k: int = 5):
         n_results=top_k
     )
 
+    # DEBUG OUTPUT
+    print("\n===== RAW CHROMA RESULTS =====")
+
+    for i in range(len(results["documents"][0])):
+
+        print("\nRANK:", i + 1)
+
+        print(
+            "DISTANCE:",
+            results["distances"][0][i]
+        )
+
+        print(
+            "SOURCE:",
+            results["metadatas"][0][i]["source"]
+        )
+
+        print("TEXT:")
+        print(results["documents"][0][i][:300])
+
+    print("\n============================")
+
     chunks = []
 
     documents = results["documents"][0]
@@ -34,6 +56,7 @@ def retrieve_chunks(query: str, top_k: int = 5):
             "score": score
         })
 
+    print("\n===== FINAL CHUNKS =====")
     print(chunks)
 
     return chunks

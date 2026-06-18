@@ -1,5 +1,7 @@
 from services.retriever import retrieve_chunks
 from services.generator import generate
+from services.planner import decide_action
+from services.query_rewriter import query_rewriter
 
 
 DOCUMENT_PROMPT = """
@@ -26,18 +28,7 @@ Answer:
 """
 
 
-def rewrite_query(query):
-    """
-    Query rewriting placeholder.
-    Can be upgraded later.
-    """
-    return query
-
-
 def context_is_sufficient(chunks):
-    """
-    Simple evaluator.
-    """
     return len(chunks) > 0
 
 
@@ -46,11 +37,35 @@ def agentic_answer(query, top_k=3):
     print("\n========== AGENT START ==========")
     print("USER QUERY:", query)
 
-    # Step 1: Query Rewriter
-    rewritten_query = rewrite_query(query)
+    # Planner
+    action = decide_action(
+        query=query,
+        has_document=True
+    )
+
+    print("PLANNER:", action)
+
+    # GENERAL CHAT ROUTE
+    if action == "GENERAL_CHAT":
+
+        from services.general_chat import general_chat
+
+        answer = general_chat(query)
+
+        print("========== AGENT END ==========\n")
+
+        return {
+            "answer": answer,
+            "chunks": [],
+            "citations": []
+        }
+
+    # DOCUMENT ROUTE
+
+    rewritten_query = query_rewriter(query)
+
     print("REWRITTEN QUERY:", rewritten_query)
 
-    # Step 2: Retrieval
     chunks = retrieve_chunks(
         rewritten_query,
         top_k
@@ -58,8 +73,8 @@ def agentic_answer(query, top_k=3):
 
     print("RETRIEVED CHUNKS:", len(chunks))
 
-    # Step 3: Evaluator
     sufficient = context_is_sufficient(chunks)
+
     print("CONTEXT SUFFICIENT:", sufficient)
 
     if not sufficient:
@@ -70,26 +85,22 @@ def agentic_answer(query, top_k=3):
             "citations": []
         }
 
-    # Step 4: Build Context
     context = "\n\n".join(
         chunk["text"]
         for chunk in chunks
     )
 
     print("\n===== RETRIEVED CONTEXT =====")
-    print(context[:1000])  # first 1000 chars
+    print(context[:1000])
     print("=============================\n")
 
-    # Step 5: Prompt Construction
     prompt = DOCUMENT_PROMPT.format(
         context=context,
         query=query
     )
 
-    # Step 6: Generation
     answer = generate(prompt)
 
-    # Step 7: Citations
     citations = []
 
     for chunk in chunks:
