@@ -1,7 +1,7 @@
 import ollama
 
 
-EMBED_MODEL = "nomic-embed-text"
+EMBED_MODEL = "mxbai-embed-large:335m "
 
 
 def get_embedding(text: str):

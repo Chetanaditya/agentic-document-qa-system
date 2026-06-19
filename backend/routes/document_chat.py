@@ -9,8 +9,8 @@ router = APIRouter()
 
 class DocumentChatRequest(BaseModel):
     query: str
-    top_k: int = 3
-    rerank_top_n: int = 3
+    top_k: int = 7
+    rerank_top_n: int = 7
     use_reranker: bool = False
 
 

@@ -6,7 +6,8 @@ client = chromadb.PersistentClient(
 )
 
 collection = client.get_or_create_collection(
-    name="rag_documents"
+    name="rag_documents",
+    metadata={"hnsw:space": "cosine"}
 )
 
 

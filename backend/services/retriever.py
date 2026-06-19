@@ -2,7 +2,7 @@ from services.embeddings import get_embedding
 from services.vector_store import get_collection
 
 
-def retrieve_chunks(query: str, top_k: int = 5):
+def retrieve_chunks(query: str, top_k: int = 7):
 
     collection = get_collection()
 

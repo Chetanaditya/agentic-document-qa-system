@@ -1,15 +1,29 @@
+from services.generator import generate
+
+
 def query_rewriter(query: str):
 
-    """
-    Query rewriting agent.
+    prompt = f"""
+You are a retrieval query rewriting agent.
 
-    For now:
-    Returns the original query.
+Your job is to convert user questions into optimized search queries for a vector database.
 
-    Later:
-    - Expand abbreviations
-    - Improve retrieval quality
-    - Reformulate vague questions
-    """
+Rules:
+- Preserve the original meaning.
+- Focus on important entities, concepts, section names, and keywords.
+- Remove filler words.
+- Keep the rewritten query short.
+- Return ONLY the rewritten query.
+- Do not explain anything.
 
-    return query
+User Question:
+{query}
+
+Rewritten Query:
+"""
+
+    rewritten_query = generate(prompt).strip()
+
+    print("REWRITTEN QUERY:", rewritten_query)
+
+    return rewritten_query
