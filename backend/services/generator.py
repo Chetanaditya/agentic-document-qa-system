@@ -16,7 +16,7 @@ def generate(prompt: str):
             model=MODEL_NAME,
             prompt="/no_think\n" + prompt,
             options={
-                "temperature": 0,
+                "temperature": 1,
                 "num_predict": 1000
             }
         )

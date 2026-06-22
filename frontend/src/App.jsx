@@ -25,78 +25,6 @@ function TypingDots() {
   );
 }
 
-// ─── CHUNK PANEL ──────────────────────────────────────────────────────────────
-function ChunkPanel({ chunks, isOpen, onClose,theme}) {
-  if (!isOpen || !chunks?.length) return null;
-  return (
-    <div style={{
-      position: "fixed", right: 0, top: 0, bottom: 0, width: 340,
-      background: "#0f0f0f", borderLeft: "1px solid #1e1e1e",
-      display: "flex", flexDirection: "column", zIndex: 50,
-      animation: "slideIn 0.22s ease forwards",
-    }}>
-      {/* Header */}
-      <div style={{
-        padding: "14px 16px", borderBottom: "1px solid #1a1a1a",
-        display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
-      }}>
-        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "#555", letterSpacing: "0.18em", flex: 1 }}>
-          RETRIEVED CHUNKS · {chunks.length}
-        </span>
-        <button onClick={onClose} style={{
-          background: "transparent", border: "1px solid #1e1e1e", borderRadius: 4,
-          padding: "3px 8px", fontSize: 10, color: "#444", cursor: "pointer",
-          fontFamily: "'IBM Plex Mono', monospace",
-        }}>✕</button>
-      </div>
-      {/* Chunks */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
-        {chunks.map((chunk, i) => (
-          <div key={i} style={{
-            background: theme.text, border: "1px solid #1e1e1e",
-            borderRadius: 8, padding: "10px 12px",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-              <span style={{
-                fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-                background: "#1a1a3a", color: "#7b8cde", padding: "2px 7px",
-                borderRadius: 3, letterSpacing: "0.1em",
-              }}>#{i + 1}</span>
-              {chunk.source && (
-                <span style={{
-                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
-                  color: "#c8a96e", overflow: "hidden", textOverflow: "ellipsis",
-                  whiteSpace: "nowrap", maxWidth: 220,
-                }}>{chunk.source}</span>
-              )}
-              {chunk.score != null && (
-                <span style={{
-                  marginLeft: "auto", fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: 9, color: "#2a5a2a",
-                  background: "#0a1a0a", padding: "2px 6px", borderRadius: 3,
-                }}>
-                  {(chunk.score * 100).toFixed(0)}%
-                </span>
-              )}
-            </div>
-            <div style={{
-              fontSize: 11.5, color: "#666", lineHeight: 1.65,
-              fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 300,
-            }}>
-              {chunk.text}
-            </div>
-            {chunk.page != null && (
-              <div style={{ marginTop: 6, fontSize: 9, color: "#333", fontFamily: "'IBM Plex Mono', monospace" }}>
-                page {chunk.page}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── CITATION BADGE ───────────────────────────────────────────────────────────
 function CitationBadge({ citation, index }) {
   const [hover, setHover] = useState(false);
@@ -187,10 +115,10 @@ function SourceList({ citations,theme }) {
 }
 
 // ─── MESSAGE BUBBLE ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, onShowChunks,theme }) {
+function MessageBubble({ msg,theme }) {
   const isUser = msg.role === "user";
   const hasCitations = msg.citations?.length > 0;
-  const hasChunks = msg.chunks?.length > 0;
+  
 
   return (
     <div style={{
@@ -238,23 +166,6 @@ function MessageBubble({ msg, onShowChunks,theme }) {
         {/* Source list */}
         {!isUser && hasCitations && !msg.streaming && <SourceList citations={msg.citations} theme={theme}/>}
 
-        {/* Chunks button */}
-        {!isUser && hasChunks && !msg.streaming && (
-          <button onClick={() => onShowChunks(msg.chunks)} style={{
-            marginTop: 10, background: "transparent",
-            border: "1px solid #1e1e1e", borderRadius: 5,
-            padding: "4px 10px", fontSize: 10, color: "#444",
-            cursor: "pointer", fontFamily: "'IBM Plex Mono', monospace",
-            letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: 5,
-            transition: "border-color 0.15s, color 0.15s",
-          }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#333"; e.currentTarget.style.color = "#888"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1e1e1e"; e.currentTarget.style.color = "#444"; }}
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="2" y="3" width="20" height="4"/><rect x="2" y="10" width="20" height="4"/><rect x="2" y="17" width="20" height="4"/></svg>
-            VIEW {msg.chunks.length} CHUNKS
-          </button>
-        )}
       </div>
     </div>
   );
@@ -399,7 +310,6 @@ export default function App() {
 };
   const [loading, setLoading]           = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [chunkPanel, setChunkPanel]     = useState({ open: false, chunks: [] });
   const [showUpload, setShowUpload]     = useState(false);
   const bottomRef = useRef(null);
   const taRef     = useRef(null);
@@ -464,7 +374,6 @@ const fetchReply = async (text) => {
           ...m,
           content: data.answer || data.reply,
           citations: data.citations || [],
-          chunks: data.chunks || [],
           streaming: false,
         }
       : m
@@ -591,7 +500,6 @@ const fetchReply = async (text) => {
                   </div>
                 ) : (
                   <MessageBubble key={msg.id} msg={msg}
-                    onShowChunks={(chunks) => setChunkPanel({ open: true, chunks })}
                     theme={theme} />
                 )
               )}
