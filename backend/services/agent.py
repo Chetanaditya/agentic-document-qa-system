@@ -2,6 +2,7 @@ from services.retriever import retrieve_chunks
 from services.generator import generate
 from services.planner import decide_action
 from services.query_rewriter import query_rewriter
+from services.re_ranker import rerank_chunks
 
 
 DOCUMENT_PROMPT = """
@@ -29,15 +30,24 @@ Answer:
 
 
 def context_is_sufficient(chunks):
+    """
+    Placeholder evaluator.
+    Will later be replaced with Context Evaluator Agent.
+    """
     return len(chunks) > 0
 
 
-def agentic_answer(query, top_k=3):
+def agentic_answer(
+    query,
+    retrieval_k=10,
+    rerank_top_n=3
+):
 
     print("\n========== AGENT START ==========")
     print("USER QUERY:", query)
 
-    # Planner
+    # STEP 0: ROUTER / PLANNER
+
     action = decide_action(
         query=query,
         has_document=True
@@ -45,7 +55,8 @@ def agentic_answer(query, top_k=3):
 
     print("PLANNER:", action)
 
-    # GENERAL CHAT ROUTE
+    # GENERAL CHAT PATH
+
     if action == "GENERAL_CHAT":
 
         from services.general_chat import general_chat
@@ -60,18 +71,52 @@ def agentic_answer(query, top_k=3):
             "citations": []
         }
 
-    # DOCUMENT ROUTE
+    # DOCUMENT PATH
+
+    # STEP 1: QUERY REWRITING
 
     rewritten_query = query_rewriter(query)
 
     print("REWRITTEN QUERY:", rewritten_query)
 
+    # STEP 2: RETRIEVAL
+
     chunks = retrieve_chunks(
         rewritten_query,
-        top_k
+        top_k=retrieval_k
     )
 
     print("RETRIEVED CHUNKS:", len(chunks))
+
+    # STEP 3: RE-RANKING
+
+    chunks = rerank_chunks(
+        rewritten_query,
+        chunks,
+        top_n=rerank_top_n
+    )
+
+    print("\n===== AFTER RERANK =====")
+
+    for i, chunk in enumerate(chunks):
+
+        print(f"\nRANK {i + 1}")
+
+        print(
+            "RERANK SCORE:",
+            chunk.get("rerank_score")
+        )
+
+        print(
+            chunk["text"][:300]
+        )
+
+    print("\n========================")
+
+    print("\n===== AFTER RERANK =====")
+
+
+    # STEP 4: CONTEXT EVALUATION
 
     sufficient = context_is_sufficient(chunks)
 
@@ -85,30 +130,49 @@ def agentic_answer(query, top_k=3):
             "citations": []
         }
 
+    # STEP 5: BUILD CONTEXT
+
     context = "\n\n".join(
         chunk["text"]
         for chunk in chunks
     )
 
-    print("\n===== RETRIEVED CONTEXT =====")
-    print(context[:1000])
-    print("=============================\n")
+    print("\n===== FINAL CONTEXT =====")
+
+    print(context[:1500])
+
+    print("\n=========================")
+
+    # STEP 6: PROMPT CONSTRUCTION
 
     prompt = DOCUMENT_PROMPT.format(
         context=context,
         query=query
     )
 
+    # STEP 7: GENERATION
+
     answer = generate(prompt)
+
+    # STEP 8: CITATIONS
 
     citations = []
 
     for chunk in chunks:
 
         citations.append({
-            "source": chunk.get("source", "Unknown"),
-            "page": chunk.get("page", "N/A"),
-            "text": chunk.get("text", "")
+            "source": chunk.get(
+                "source",
+                "Unknown"
+            ),
+            "page": chunk.get(
+                "page",
+                "N/A"
+            ),
+            "text": chunk.get(
+                "text",
+                ""
+            )
         })
 
     print("========== AGENT END ==========\n")
