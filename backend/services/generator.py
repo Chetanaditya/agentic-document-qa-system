@@ -60,6 +60,16 @@ Do NOT explain your reasoning.
 Do NOT show thinking.
 Do NOT show analysis.
 
+Formatting Rules :
+
+use proper markdown
+do not place list on seperate lines 
+do not generate empty lines between a list marker and it's content
+use compact formatting
+use bullet points for explanations
+use numbered lists only when necessary
+keep responses readable and concise
+
 Answer:
 """
 

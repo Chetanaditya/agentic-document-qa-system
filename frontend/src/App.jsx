@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Children } from "react";
+import ReactMarkdown from "react-markdown"
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const BACKEND_URL = "http://localhost:8000";
@@ -10,6 +11,36 @@ const SUGGESTIONS = [
   "Best practices for REST APIs",
   "What is the CAP theorem?",
 ];
+
+// ─── CONTENT SAFETY HELPERS ───────────────────────────────────────────────────
+// Backend responses can be malformed (object, array, null, undefined, number).
+// ReactMarkdown and string-based rendering (renderWithCitations, regex split,
+// etc.) all require a plain string. These helpers guarantee that no matter
+// what the backend sends, we always end up with a safe, renderable string.
+function safeToString(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value.map((item) => safeToString(item)).join("\n");
+  }
+  if (typeof value === "object") {
+    // Common shapes a backend might accidentally send instead of a string
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.content === "string") return value.content;
+    if (typeof value.message === "string") return value.message;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
+
+function getMessageContent(msg) {
+  return safeToString(msg?.content);
+}
 
 // ─── TYPING DOTS ──────────────────────────────────────────────────────────────
 function TypingDots() {
@@ -28,6 +59,9 @@ function TypingDots() {
 // ─── CITATION BADGE ───────────────────────────────────────────────────────────
 function CitationBadge({ citation, index }) {
   const [hover, setHover] = useState(false);
+  const citationText = citation && typeof citation.text === "string" ? citation.text : safeToString(citation?.text);
+  const citationSource = citation && typeof citation.source === "string" ? citation.source : safeToString(citation?.source);
+
   return (
     <span style={{ position: "relative", display: "inline-block" }}>
       <span
@@ -52,16 +86,17 @@ function CitationBadge({ citation, index }) {
           borderRadius: 8, padding: "8px 10px", zIndex: 100,
           boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
           pointerEvents: "none",
+          textAlign: "left",
         }}>
-          <div style={{ fontSize: 9, color: "#c8a96e", fontFamily: "'IBM Plex Mono', monospace", marginBottom: 4 }}>
-            {citation.source}
+          <div style={{ fontSize: 9, color: "#c8a96e", fontFamily: "'IBM Plex Mono', monospace", marginBottom: 4, textAlign: "left" }}>
+            {citationSource}
           </div>
-          <div style={{ fontSize: 11, color: "#888", lineHeight: 1.5, fontFamily: "'IBM Plex Sans', sans-serif" }}>
-            {citation.text?.slice(0, 140)}{citation.text?.length > 140 ? "…" : ""}
+          <div style={{ fontSize: 11, color: "#888", lineHeight: 1.5, fontFamily: "'IBM Plex Sans', sans-serif", textAlign: "left" }}>
+            {citationText.slice(0, 140)}{citationText.length > 140 ? "…" : ""}
           </div>
           {citation.page != null && (
-            <div style={{ marginTop: 4, fontSize: 9, color: "#444", fontFamily: "'IBM Plex Mono', monospace" }}>
-              page {citation.page}
+            <div style={{ marginTop: 4, fontSize: 9, color: "#444", fontFamily: "'IBM Plex Mono', monospace", textAlign: "left" }}>
+              page {safeToString(citation.page)}
             </div>
           )}
         </div>
@@ -71,10 +106,13 @@ function CitationBadge({ citation, index }) {
 }
 
 // ─── INLINE CITATION RENDERER ─────────────────────────────────────────────────
-// Looks for [1], [2] markers in content and replaces with badge components
+// Looks for [1], [2] markers in content and replaces with badge components.
+// Guarded so it never receives anything but a string, and never crashes on
+// a malformed citations array.
 function renderWithCitations(content, citations) {
-  if (!citations?.length) return content;
-  const parts = content.split(/(\[\d+\])/g);
+  const text = safeToString(content);
+  if (!Array.isArray(citations) || citations.length === 0) return text;
+  const parts = text.split(/(\[\d+\])/g);
   return parts.map((part, i) => {
     const match = part.match(/^\[(\d+)\]$/);
     if (match) {
@@ -87,14 +125,17 @@ function renderWithCitations(content, citations) {
 }
 
 // ─── SOURCE LIST ──────────────────────────────────────────────────────────────
-function SourceList({ citations,theme }) {
-  if (!citations?.length) return null;
-  const unique = Array.from(new Map(citations.map((c) => [c.source, c])).values());
+function SourceList({ citations, theme }) {
+  if (!Array.isArray(citations) || citations.length === 0) return null;
+  const unique = Array.from(
+    new Map(citations.map((c) => [safeToString(c?.source), c])).values()
+  );
   return (
-    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #1e1e1e" }}>
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #1e1e1e", textAlign: "left" }}>
       <div style={{
         fontFamily: "'IBM Plex Mono', monospace", fontSize: 9,
         color: theme.text, letterSpacing: "0.15em", marginBottom: 6,
+        textAlign: "left",
       }}>SOURCES</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
         {unique.map((c, i) => (
@@ -106,7 +147,7 @@ function SourceList({ citations,theme }) {
             display: "flex", alignItems: "center", gap: 5,
           }}>
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            {c.source}
+            {safeToString(c?.source)}
           </span>
         ))}
       </div>
@@ -114,11 +155,107 @@ function SourceList({ citations,theme }) {
   );
 }
 
+// ─── MARKDOWN COMPONENTS (shared, left-aligned) ───────────────────────────────
+// Centralized so every block-level element AI content can produce is forced
+// to remain left-aligned, regardless of any inherited text-align from a
+// parent container (e.g. centered empty-state, centered footer text, etc).
+const markdownComponents = {
+  p: ({ children }) => (
+    <p style={{ margin: "8px 0", lineHeight: 1.6, textAlign: "left" }}>
+      {children}
+    </p>
+  ),
+  h1: ({ children }) => (
+    <h1 style={{ marginTop: 20, marginBottom: 12, textAlign: "left" }}>
+      {children}
+    </h1>
+  ),
+  h2: ({ children }) => (
+    <h2 style={{ marginTop: 18, marginBottom: 10, textAlign: "left" }}>
+      {children}
+    </h2>
+  ),
+  h3: ({ children }) => (
+    <h3 style={{ marginTop: 16, marginBottom: 8, textAlign: "left" }}>
+      {children}
+    </h3>
+  ),
+  ul: ({ children }) => (
+    <ul style={{ paddingLeft: 20, margin: "8px 0", textAlign: "left" }}>
+      {children}
+    </ul>
+  ),
+  ol: ({ children }) => (
+    <ol style={{ paddingLeft: 20, margin: "8px 0", textAlign: "left" }}>
+      {children}
+    </ol>
+  ),
+  li: ({ children }) => (
+    <li style={{ textAlign: "left" }}>
+      {children}
+    </li>
+  ),
+  table: ({ children }) => (
+    <div style={{ overflowX: "auto", margin: "8px 0" }}>
+      <table style={{ textAlign: "left", borderCollapse: "collapse", width: "100%" }}>
+        {children}
+      </table>
+    </div>
+  ),
+  th: ({ children }) => (
+    <th style={{ textAlign: "left", padding: "4px 8px", borderBottom: "1px solid #2a2a2a" }}>
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td style={{ textAlign: "left", padding: "4px 8px", borderBottom: "1px solid #1a1a1a" }}>
+      {children}
+    </td>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote style={{ textAlign: "left", margin: "8px 0", paddingLeft: 12, borderLeft: "2px solid #2a2a2a" }}>
+      {children}
+    </blockquote>
+  ),
+  pre: ({ children }) => (
+    <pre style={{ textAlign: "left", overflowX: "auto", margin: "8px 0" }}>
+      {children}
+    </pre>
+  ),
+  code: ({ children }) => (
+    <code
+      style={{
+        background: "#1e1e1e",
+        padding: "2px 5px",
+        borderRadius: 4,
+        textAlign: "left",
+      }}
+    >
+      {children}
+    </code>
+  ),
+};
+
+// ─── SAFE MARKDOWN RENDERER ───────────────────────────────────────────────────
+// Wraps ReactMarkdown with a guard + try/catch so malformed content (object,
+// array, null, etc.) can never crash the message pipeline. ReactMarkdown is
+// only ever given a guaranteed string.
+function SafeMarkdown({ content }) {
+  const text = safeToString(content);
+  if (!text) return null;
+  try {
+    return <ReactMarkdown components={markdownComponents}>{text}</ReactMarkdown>;
+  } catch (err) {
+    // Fall back to plain preformatted text rather than crashing the UI
+    return <div style={{ whiteSpace: "pre-wrap", textAlign: "left" }}>{text}</div>;
+  }
+}
+
 // ─── MESSAGE BUBBLE ───────────────────────────────────────────────────────────
-function MessageBubble({ msg,theme }) {
+function MessageBubble({ msg, theme }) {
   const isUser = msg.role === "user";
-  const hasCitations = msg.citations?.length > 0;
-  
+  const content = getMessageContent(msg);
+  const hasCitations = Array.isArray(msg.citations) && msg.citations.length > 0;
 
   return (
     <div style={{
@@ -144,16 +281,20 @@ function MessageBubble({ msg,theme }) {
       {/* Bubble */}
       <div style={{
         maxWidth: "78%",
+        width: "fit-content",
+        textAlign: "left",
         background: isUser ? "#12122a" : "#141414",
         border: isUser ? "1px solid #2a2a5a" : "1px solid #222",
         borderRadius: isUser ? "16px 4px 16px 16px" : "4px 16px 16px 16px",
         padding: "11px 15px",
         color: isUser ? "#c8ccf5" : "#e0d9cc",
-        fontSize: 13.5, lineHeight: 1.75, fontWeight: 300,
+        fontSize: 13.5, lineHeight: 1.55, fontWeight: 300,
         wordBreak: "break-word",
       }}>
-        <div style={{ whiteSpace: "pre-wrap" }}>
-          {hasCitations ? renderWithCitations(msg.content, msg.citations) : msg.content}
+        <div style={{ whiteSpace: "pre-wrap", textAlign: "left" }}>
+          {hasCitations
+            ? renderWithCitations(content, msg.citations)
+            : <SafeMarkdown content={content} />}
           {msg.streaming && (
             <span style={{
               display: "inline-block", width: 2, height: 14,
@@ -164,7 +305,7 @@ function MessageBubble({ msg,theme }) {
         </div>
 
         {/* Source list */}
-        {!isUser && hasCitations && !msg.streaming && <SourceList citations={msg.citations} theme={theme}/>}
+        {!isUser && hasCitations && !msg.streaming && <SourceList citations={msg.citations} theme={theme} />}
 
       </div>
     </div>
@@ -172,7 +313,7 @@ function MessageBubble({ msg,theme }) {
 }
 
 // ─── FILE UPLOAD AREA ─────────────────────────────────────────────────────────
-function FileUploadArea({ uploadedFiles, onUpload, onRemove,theme }) {
+function FileUploadArea({ uploadedFiles, onUpload, onRemove, theme }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -367,18 +508,26 @@ const fetchReply = async (text) => {
 
     try {
       const data = await fetchReply(query);
-   setMessages((prev) =>
-  prev.map((m) =>
-    m.id === assistantId
-      ? {
-          ...m,
-          content: data.answer || data.reply,
-          citations: data.citations || [],
-          streaming: false,
-        }
-      : m
-  )
-);
+      // Guard against malformed backend payloads: data may be missing,
+      // data.answer/data.reply may be an object/array/null instead of a
+      // string, and data.citations may not be an array. safeToString +
+      // the Array.isArray check in MessageBubble/SourceList/renderWithCitations
+      // protect the render path regardless of what comes back here.
+      const replyContent = (data && (data.answer ?? data.reply)) ?? "";
+      const replyCitations = Array.isArray(data?.citations) ? data.citations : [];
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? {
+                ...m,
+                content: replyContent,
+                citations: replyCitations,
+                streaming: false,
+              }
+            : m
+        )
+      );
     } catch (e) {
       setMessages((prev) =>
         prev.map((m) =>
