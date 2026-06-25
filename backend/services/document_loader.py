@@ -21,20 +21,59 @@ def load_pdf(file_path: str):
 
 
 def load_docx(file_path: str):
+    """
+    Robust DOCX loader.
+
+    Extracts text from:
+    - Paragraphs
+    - Tables
+
+    This improves extraction for resumes and structured
+    Word documents where important information may be
+    stored inside tables.
+    """
+
     doc = Document(file_path)
 
-    text = "\n".join(
-        paragraph.text
-        for paragraph in doc.paragraphs
-    )
+    parts = []
+
+    # -----------------------------
+    # Extract normal paragraphs
+    # -----------------------------
+    for paragraph in doc.paragraphs:
+
+        text = paragraph.text.strip()
+
+        if text:
+            parts.append(text)
+
+    # -----------------------------
+    # Extract tables
+    # -----------------------------
+    for table in doc.tables:
+
+        for row in table.rows:
+
+            row_text = []
+
+            for cell in row.cells:
+
+                text = cell.text.strip()
+
+                if text:
+                    row_text.append(text)
+
+            if row_text:
+                parts.append(" | ".join(row_text))
 
     return [{
-        "text": text,
+        "text": "\n".join(parts),
         "page": 1
     }]
 
 
 def load_txt(file_path: str):
+
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         text = f.read()
 
@@ -45,9 +84,11 @@ def load_txt(file_path: str):
 
 
 def load_csv(file_path: str):
+
     rows = []
 
     with open(file_path, newline="", encoding="utf-8", errors="ignore") as f:
+
         reader = csv.reader(f)
 
         for row in reader:
@@ -60,6 +101,7 @@ def load_csv(file_path: str):
 
 
 def load_document(file_path: str):
+
     ext = Path(file_path).suffix.lower()
 
     if ext == ".pdf":
@@ -75,3 +117,4 @@ def load_document(file_path: str):
         return load_csv(file_path)
 
     raise ValueError(f"Unsupported file type: {ext}")
+

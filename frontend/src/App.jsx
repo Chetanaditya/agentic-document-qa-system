@@ -242,12 +242,27 @@ const markdownComponents = {
 // only ever given a guaranteed string.
 function SafeMarkdown({ content }) {
   const text = safeToString(content);
+
   if (!text) return null;
+
+  // Normalize excessive blank lines
+  const cleaned = text
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
   try {
-    return <ReactMarkdown components={markdownComponents}>{text}</ReactMarkdown>;
+    return (
+      <ReactMarkdown components={markdownComponents}>
+        {cleaned}
+      </ReactMarkdown>
+    );
   } catch (err) {
-    // Fall back to plain preformatted text rather than crashing the UI
-    return <div style={{ whiteSpace: "pre-wrap", textAlign: "left" }}>{text}</div>;
+    return (
+      <div style={{ whiteSpace: "pre-wrap", textAlign: "left" }}>
+        {cleaned}
+      </div>
+    );
   }
 }
 
@@ -291,7 +306,7 @@ function MessageBubble({ msg, theme }) {
         fontSize: 13.5, lineHeight: 1.55, fontWeight: 300,
         wordBreak: "break-word",
       }}>
-        <div style={{ whiteSpace: "pre-wrap", textAlign: "left" }}>
+        <div style={{ textAlign: "left" }}>
           {hasCitations
             ? renderWithCitations(content, msg.citations)
             : <SafeMarkdown content={content} />}

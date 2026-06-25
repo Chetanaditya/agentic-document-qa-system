@@ -1,5 +1,6 @@
 import ollama
 import time
+import re
 
 MODEL_NAME = "qwen2.5:3b"
 
@@ -21,12 +22,19 @@ def generate(prompt: str):
             }
         )
 
+       
+
+        answer = response["response"]
+
+# Normalize excessive blank lines
+        answer = re.sub(r"\n{3,}", "\n\n", answer).strip()
+
         elapsed = time.time() - start
 
         print("OLLAMA RETURNED")
         print(f"OLLAMA TOOK: {elapsed:.2f} seconds")
 
-        return response["response"]
+        return answer
 
     except Exception as e:
         print("\n" + "=" * 60)

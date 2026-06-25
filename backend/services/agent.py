@@ -1,6 +1,5 @@
 from services.retriever import retrieve_chunks
 from services.generator import generate
-from services.planner import decide_action
 from services.query_rewriter import query_rewriter
 from services.re_ranker import rerank_chunks
 
@@ -31,9 +30,16 @@ Answer:
 
 def context_is_sufficient(chunks):
     """
-    Placeholder evaluator.
-    Will later be replaced with Context Evaluator Agent.
+    Temporary Context Evaluator.
+
+    For now, if retrieval + reranking
+    returns at least one chunk, we consider
+    the context sufficient.
+
+    Later this will become an LLM-based
+    Context Evaluation Agent.
     """
+
     return len(chunks) > 0
 
 
@@ -46,18 +52,38 @@ def agentic_answer(
     print("\n========== AGENT START ==========")
     print("USER QUERY:", query)
 
-    # STEP 0: ROUTER / PLANNER
+    # STEP 1 : QUERY REWRITING
 
-    action = decide_action(
-        query=query,
-        has_document=True
+    rewritten_query = query_rewriter(query)
+
+    print("REWRITTEN QUERY:", rewritten_query)
+
+    # STEP 2 : RETRIEVAL
+
+    chunks = retrieve_chunks(
+        rewritten_query,
+        top_k=retrieval_k
     )
 
-    print("PLANNER:", action)
+    print("RETRIEVED CHUNKS:", len(chunks))
 
-    # GENERAL CHAT PATH
+    # STEP 3 : RE-RANKING
 
-    if action == "GENERAL_CHAT":
+    chunks = rerank_chunks(
+        rewritten_query,
+        chunks,
+        top_n=rerank_top_n
+    )
+
+    # STEP 4 : CONTEXT EVALUATION
+
+    sufficient = context_is_sufficient(chunks)
+
+    print("CONTEXT SUFFICIENT:", sufficient)
+
+    if not sufficient:
+
+        print("SWITCHING TO GENERAL CHAT")
 
         from services.general_chat import general_chat
 
@@ -71,66 +97,7 @@ def agentic_answer(
             "citations": []
         }
 
-    # DOCUMENT PATH
-
-    # STEP 1: QUERY REWRITING
-
-    rewritten_query = query_rewriter(query)
-
-    print("REWRITTEN QUERY:", rewritten_query)
-
-    # STEP 2: RETRIEVAL
-
-    chunks = retrieve_chunks(
-        rewritten_query,
-        top_k=retrieval_k
-    )
-
-    print("RETRIEVED CHUNKS:", len(chunks))
-
-    # STEP 3: RE-RANKING
-
-    chunks = rerank_chunks(
-        rewritten_query,
-        chunks,
-        top_n=rerank_top_n
-    )
-
-    print("\n===== AFTER RERANK =====")
-
-    for i, chunk in enumerate(chunks):
-
-        print(f"\nRANK {i + 1}")
-
-        print(
-            "RERANK SCORE:",
-            chunk.get("rerank_score")
-        )
-
-        print(
-            chunk["text"][:300]
-        )
-
-    print("\n========================")
-
-    print("\n===== AFTER RERANK =====")
-
-
-    # STEP 4: CONTEXT EVALUATION
-
-    sufficient = context_is_sufficient(chunks)
-
-    print("CONTEXT SUFFICIENT:", sufficient)
-
-    if not sufficient:
-
-        return {
-            "answer": "I could not find relevant information in the uploaded document.",
-            "chunks": [],
-            "citations": []
-        }
-
-    # STEP 5: BUILD CONTEXT
+    # STEP 5 : BUILD CONTEXT
 
     context = "\n\n".join(
         chunk["text"]
@@ -138,41 +105,30 @@ def agentic_answer(
     )
 
     print("\n===== FINAL CONTEXT =====")
-
     print(context[:1500])
-
     print("\n=========================")
 
-    # STEP 6: PROMPT CONSTRUCTION
+    # STEP 6 : PROMPT CONSTRUCTION
 
     prompt = DOCUMENT_PROMPT.format(
         context=context,
         query=query
     )
 
-    # STEP 7: GENERATION
+    # STEP 7 : GENERATION
 
     answer = generate(prompt)
 
-    # STEP 8: CITATIONS
+    # STEP 8 : BUILD CITATIONS
 
     citations = []
 
     for chunk in chunks:
 
         citations.append({
-            "source": chunk.get(
-                "source",
-                "Unknown"
-            ),
-            "page": chunk.get(
-                "page",
-                "N/A"
-            ),
-            "text": chunk.get(
-                "text",
-                ""
-            )
+            "source": chunk.get("source", "Unknown"),
+            "page": chunk.get("page", "N/A"),
+            "text": chunk.get("text", "")
         })
 
     print("========== AGENT END ==========\n")
