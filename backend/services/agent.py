@@ -2,7 +2,10 @@ from services.retriever import retrieve_chunks
 from services.generator import generate
 from services.query_rewriter import query_rewriter
 from services.re_ranker import rerank_chunks
-
+from services.reasoning_agent import reasoning_agent
+from services.document_selector import select_documents
+from services.vector_store import get_collection
+from services.context_evaluator import context_evaluator
 
 DOCUMENT_PROMPT = """
 You are an intelligent document analysis assistant.
@@ -28,19 +31,7 @@ Answer:
 """
 
 
-def context_is_sufficient(chunks):
-    """
-    Temporary Context Evaluator.
-
-    For now, if retrieval + reranking
-    returns at least one chunk, we consider
-    the context sufficient.
-
-    Later this will become an LLM-based
-    Context Evaluation Agent.
-    """
-
-    return len(chunks) > 0
+MAX_ITERATIONS = 2
 
 
 def agentic_answer(
@@ -52,52 +43,111 @@ def agentic_answer(
     print("\n========== AGENT START ==========")
     print("USER QUERY:", query)
 
-    # STEP 1 : QUERY REWRITING
+    # ---------------------------------------------------
+    # STEP 1 : QUERY REWRITER
+    # ---------------------------------------------------
 
     rewritten_query = query_rewriter(query)
 
     print("REWRITTEN QUERY:", rewritten_query)
 
-    # STEP 2 : RETRIEVAL
+    # ---------------------------------------------------
+    # STEP 2 : GET AVAILABLE DOCUMENTS
+    # ---------------------------------------------------
 
-    chunks = retrieve_chunks(
-        rewritten_query,
-        top_k=retrieval_k
+    collection = get_collection()
+
+    results = collection.get(include=["metadatas"])
+
+    document_list = sorted(
+        list(
+            {
+                metadata["source"]
+                for metadata in results["metadatas"]
+                if metadata and "source" in metadata
+            }
+        )
     )
 
-    print("RETRIEVED CHUNKS:", len(chunks))
+    print("\n===== AVAILABLE DOCUMENTS =====")
+    for doc in document_list:
+        print("-", doc)
 
-    # STEP 3 : RE-RANKING
+    # ---------------------------------------------------
+    # STEP 3 : DOCUMENT SELECTION
+    # ---------------------------------------------------
 
-    chunks = rerank_chunks(
+    selected_documents = select_documents(
         rewritten_query,
-        chunks,
-        top_n=rerank_top_n
+        document_list
     )
 
-    # STEP 4 : CONTEXT EVALUATION
+    print("\n===== SELECTED DOCUMENTS =====")
+    print(selected_documents)
 
-    sufficient = context_is_sufficient(chunks)
+    if not selected_documents:
+        print("No document selected.")
+        selected_documents = document_list
 
-    print("CONTEXT SUFFICIENT:", sufficient)
+    # ---------------------------------------------------
+    # ITERATIVE RETRIEVAL
+    # ---------------------------------------------------
 
-    if not sufficient:
+    all_chunks = []
 
-        print("SWITCHING TO GENERAL CHAT")
+    for iteration in range(MAX_ITERATIONS):
 
-        from services.general_chat import general_chat
+        print(f"\n========== ITERATION {iteration + 1} ==========")
 
-        answer = general_chat(query)
+        new_chunks = retrieve_chunks(
+            rewritten_query,
+            top_k=retrieval_k,
+            selected_documents=selected_documents
+        )
 
-        print("========== AGENT END ==========\n")
+        print("NEW CHUNKS:", len(new_chunks))
 
-        return {
-            "answer": answer,
-            "chunks": [],
-            "citations": []
-        }
+        all_chunks.extend(new_chunks)
 
-    # STEP 5 : BUILD CONTEXT
+        unique_chunks = []
+        seen = set()
+
+        for chunk in all_chunks:
+
+            key = (
+                chunk["text"],
+                chunk.get("source")
+            )
+
+            if key not in seen:
+                unique_chunks.append(chunk)
+                seen.add(key)
+
+        print("UNIQUE CHUNKS:", len(unique_chunks))
+
+        chunks = rerank_chunks(
+            rewritten_query,
+            unique_chunks,
+            top_n=rerank_top_n
+        )
+
+        decision = reasoning_agent(
+            rewritten_query,
+            chunks
+        )
+
+        print("DECISION:", decision["decision"])
+        print("REASON:", decision["reason"])
+
+        if decision["decision"] == "ENOUGH_CONTEXT":
+            print("CONTEXT IS SUFFICIENT")
+            break
+
+        print("RETRIEVING AGAIN...")
+
+    # ---------------------------------------------------
+    # BUILD CONTEXT
+    # ---------------------------------------------------
 
     context = "\n\n".join(
         chunk["text"]
@@ -106,35 +156,68 @@ def agentic_answer(
 
     print("\n===== FINAL CONTEXT =====")
     print(context[:1500])
-    print("\n=========================")
+    print("=========================\n")
 
-    # STEP 6 : PROMPT CONSTRUCTION
+    # ---------------------------------------------------
+    # CONTEXT EVALUATION
+    # ---------------------------------------------------
+
+    evaluation = context_evaluator(
+        rewritten_query,
+        context
+    )
+
+    print("\n===== CONTEXT EVALUATION =====")
+    print(evaluation)
+
+    if evaluation["status"] == "INSUFFICIENT":
+
+        print("Context is insufficient.")
+
+        return {
+            "answer": "I could not find sufficient information in the uploaded document.",
+            "chunks": chunks,
+            "citations": []
+        }
+
+    # ---------------------------------------------------
+    # GENERATE ANSWER
+    # ---------------------------------------------------
 
     prompt = DOCUMENT_PROMPT.format(
         context=context,
         query=query
     )
 
-    # STEP 7 : GENERATION
-
     answer = generate(prompt)
 
-    # STEP 8 : BUILD CITATIONS
-
     citations = []
+    seen = set()
 
     for chunk in chunks:
 
-        citations.append({
-            "source": chunk.get("source", "Unknown"),
-            "page": chunk.get("page", "N/A"),
-            "text": chunk.get("text", "")
-        })
+        source = chunk.get("source", "Unknown")
 
-    print("========== AGENT END ==========\n")
+        if source not in selected_documents:
+            continue
+
+        if source in seen:
+            continue
+
+        citations.append(
+            {
+                "source": source,
+                "page": chunk.get("page", "N/A"),
+                "text": chunk.get("text", "")
+            }
+        )
+
+        seen.add(source)
+
+    print("\n========== AGENT END ==========\n")
 
     return {
         "answer": answer,
-        "chunks": chunks,
-        "citations": citations
+        "citations": citations,
+        "chunks": chunks
     }
