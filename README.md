@@ -1,238 +1,400 @@
-# 🤖 Agentic Document Q&A System
+# 🚀 Agentic RAG Q&A System v1.0
 
-An AI-powered Document Question Answering System that enables users to upload documents and interact with them using natural language. The system leverages an Agentic Retrieval-Augmented Generation (Agentic RAG) architecture to retrieve relevant context, reason over retrieved information, and generate accurate, context-aware responses.
+A modular **Agentic Retrieval-Augmented Generation (RAG)** system built completely with **local LLMs** using **Ollama**, **Qwen 2.5**, **FastAPI**, **React**, **ChromaDB**, and **CrossEncoder Re-Ranking**.
 
----
+Unlike traditional RAG pipelines, this project introduces multiple specialized AI agents responsible for query rewriting, document selection, reasoning, context evaluation, and grounded response generation.
 
-## 📌 Project Overview
-
-Traditional document search systems rely on keyword matching and often struggle with understanding user intent. This project implements an Agentic RAG workflow that intelligently retrieves, analyzes, and generates responses from uploaded documents.
-
-Users can upload documents and ask questions in natural language. The system retrieves relevant document chunks through semantic search and uses a Large Language Model (LLM) to generate grounded responses based on the retrieved content.
+The entire system runs locally without relying on external APIs.
 
 ---
 
-## 🚀 Features
+# 🌟 Features
 
-- 📄 Document Upload and Processing
-- ✂️ Intelligent Document Chunking
-- 🔍 Semantic Search using Vector Embeddings
-- 🗄️ ChromaDB Vector Database Integration
-- 🤖 Agentic Retrieval-Augmented Generation (Agentic RAG)
-- 💬 Conversational Question Answering
-- 🧠 Context-Aware Response Generation
-- 🌐 Full-Stack Application (React + FastAPI)
-- ⚡ Local LLM Integration using Ollama
-- 📚 Source-Grounded Responses
+### 📄 Multi-format Document Ingestion
+
+Supports uploading and indexing:
+
+* PDF
+* DOCX
+* CSV
+* TXT
+
+Each uploaded document is:
+
+* Parsed
+* Chunked
+* Embedded
+* Stored inside ChromaDB
 
 ---
 
-## 🏗️ System Architecture
+## 🧠 Agentic Retrieval Pipeline
+
+Instead of a traditional Retrieve → Generate workflow, this project follows an **agent-based architecture**.
+
+### 1. Query Rewriter Agent
+
+Rewrites user queries into more retrieval-friendly semantic queries.
+
+Example:
+
+User:
+
+> What are my programming skills?
+
+↓
+
+Rewritten Query:
+
+> resume programming languages technical skills
+
+---
+
+### 2. Document Selection Agent
+
+Selects the most relevant uploaded document(s) before retrieval.
+
+This significantly reduces unnecessary retrieval from unrelated documents.
+
+---
+
+### 3. Semantic Retriever
+
+Uses **MXBAI-Embed-Large** embeddings with **ChromaDB** vector search to retrieve semantically similar chunks.
+
+---
+
+### 4. CrossEncoder Re-Ranker
+
+Retrieved chunks are re-ranked using
+
+**cross-encoder/ms-marco-MiniLM-L-6-v2**
+
+This improves retrieval precision by ranking chunks according to semantic relevance instead of embedding similarity alone.
+
+---
+
+### 5. Reasoning Agent
+
+Acts as the decision-making component.
+
+Responsible for determining whether:
+
+* enough evidence has been retrieved
+* another retrieval iteration is required
+
+This forms the basis of iterative retrieval.
+
+---
+
+### 6. Context Evaluator
+
+Evaluates the final retrieved context before answer generation.
+
+Checks:
+
+* Relevance
+* Completeness
+* Confidence
+
+If insufficient evidence exists, the system avoids hallucinating.
+
+---
+
+### 7. Generator
+
+Uses **Qwen 2.5 (Ollama)** to generate grounded responses using only the retrieved context.
+
+The model is explicitly instructed to avoid hallucination and answer only from the provided documents.
+
+---
+
+# 🏗 Current Architecture
 
 ```text
+User
+ │
+ ▼
+React Frontend
+ │
+ ▼
+FastAPI Backend
+ │
+ ▼
+Query Rewriter Agent
+ │
+ ▼
+Document Selection Agent
+ │
+ ▼
+Semantic Retrieval
+ │
+ ▼
+CrossEncoder Re-Ranker
+ │
+ ▼
+Reasoning Agent
+ │
+ ▼
+Context Evaluator
+ │
+ ▼
+Grounded Response Generator
+ │
+ ▼
+Frontend
+```
+
+---
+
+# 🧩 Tech Stack
+
+## Backend
+
+* Python
+* FastAPI
+* Ollama
+* Qwen 2.5
+* ChromaDB
+* Sentence Transformers
+* CrossEncoder
+* MXBAI-Embed-Large
+
+## Frontend
+
+* React.js
+* JavaScript
+* HTML
+* CSS
+* React Markdown
+
+---
+
+# 📂 Project Structure
+
+```
+backend/
+
+services/
+
+document_loader.py
+
+chunker.py
+
+embeddings.py
+
+vector_store.py
+
+query_rewriter.py
+
+document_selector.py
+
+retriever.py
+
+re_ranker.py
+
+reasoning_agent.py
+
+context_evaluator.py
+
+generator.py
+
+agent.py
+
+routes/
+
+frontend/
+
+React Application
+```
+
+---
+
+# Retrieval Workflow
+
+```
+Upload Document
+
+↓
+
+Document Loader
+
+↓
+
+Chunking
+
+↓
+
+Embeddings
+
+↓
+
+ChromaDB
+
+═══════════════════════
+
 User Query
-     │
-     ▼
-Question Router
-     │
-     ▼
-Retriever Agent
-     │
-     ▼
-ChromaDB Vector Store
-     │
-     ▼
-Relevant Document Chunks
-     │
-     ▼
-Response Generator (LLM)
-     │
-     ▼
-Final Answer
+
+↓
+
+Query Rewriter
+
+↓
+
+Document Selection
+
+↓
+
+Retriever
+
+↓
+
+CrossEncoder
+
+↓
+
+Reasoning Agent
+
+↓
+
+Context Evaluator
+
+↓
+
+Generator
+
+↓
+
+Final Response
 ```
 
 ---
 
-## 🧠 Agentic RAG Workflow
+# Current Capabilities
 
-1. User uploads a document.
-2. Document is parsed and chunked.
-3. Chunks are converted into vector embeddings.
-4. Embeddings are stored in ChromaDB.
-5. User submits a question.
-6. Retrieval Agent identifies relevant document chunks.
-7. Retrieved context is passed to the LLM.
-8. LLM generates a grounded response.
-9. Response is returned to the user.
+✅ Multi-document ingestion
 
----
+✅ Semantic search
 
-## 🔄 Normal RAG vs Agentic RAG
+✅ CrossEncoder re-ranking
 
-| Normal RAG | Agentic RAG |
-|------------|-------------|
-| Simple retrieval followed by generation | Uses intelligent agents to decide retrieval and reasoning steps |
-| Fixed workflow | Dynamic decision-making workflow |
-| Limited reasoning capability | Enhanced reasoning and context selection |
-| Basic document retrieval | Intelligent retrieval and response generation |
-| Less adaptable | More flexible and scalable |
+✅ Query rewriting
 
-This project follows an **Agentic RAG architecture**, allowing the system to perform smarter retrieval and response generation compared to traditional RAG pipelines.
+✅ Document selection
+
+✅ Iterative retrieval framework
+
+✅ Context evaluation
+
+✅ Local LLM inference
+
+✅ Grounded document Q&A
+
+✅ Citation generation
+
+✅ Modular architecture
 
 ---
 
-## 🛠️ Tech Stack
+# Challenges Faced During Development
 
-### Frontend
-- React.js
-- Vite
-- CSS
+## Retrieval Quality
 
-### Backend
-- FastAPI
-- Python
+Initially, retrieved chunks often contained irrelevant information.
 
-### AI & Machine Learning
-- Ollama
-- Large Language Models (LLMs)
-- Semantic Search
-- Retrieval-Augmented Generation (RAG)
+### Solution
 
-### Vector Database
-- ChromaDB
+Introduced:
 
-### Version Control
-- Git
-- GitHub
+* Query Rewriter
+* CrossEncoder Re-ranking
+
+This significantly improved retrieval precision.
 
 ---
 
-## 📂 Project Structure
+## Multi-document Retrieval
 
-```text
-agentic-document-qa-system
-│
-├── backend
-│   ├── routes
-│   │   ├── chat.py
-│   │   ├── document_chat.py
-│   │   └── upload.py
-│   │
-│   ├── services
-│   │   ├── chunker.py
-│   │   ├── document_loader.py
-│   │   ├── embeddings.py
-│   │   ├── generator.py
-│   │   ├── ingestion.py
-│   │   ├── retriever.py
-│   │   ├── router.py
-│   │   └── vector_store.py
-│   │
-│   └── main.py
-│
-├── chatbot
-│   ├── src
-│   ├── public
-│   └── package.json
-│
-└── README.md
-```
+When multiple documents existed in ChromaDB, unrelated chunks were retrieved.
+
+### Solution
+
+Implemented a Document Selection Agent that routes retrieval toward the most relevant uploaded document(s).
 
 ---
 
-## ⚙️ Installation
+## Hallucinations
 
-### Clone Repository
+The model occasionally generated information not present in uploaded documents.
 
-```bash
-git clone https://github.com/your-username/agentic-document-qa-system.git
-```
+### Solution
 
-### Backend Setup
-
-```bash
-cd backend
-
-pip install -r requirements.txt
-
-uvicorn main:app --reload
-```
-
-### Frontend Setup
-
-```bash
-cd chatbot
-
-npm install
-
-npm run dev
-```
+Designed a strict system prompt instructing the generator to answer only from retrieved context.
 
 ---
 
-## 📖 Usage
+## Retrieval Validation
 
-1. Start the FastAPI backend.
-2. Start the React frontend.
-3. Upload a document.
-4. Ask questions related to the uploaded document.
-5. Receive context-aware responses generated from retrieved document content.
+The system previously generated responses even when retrieval quality was poor.
 
----
+### Solution
 
-## 🎯 Learning Outcomes
-
-Through this project, the following concepts were implemented and explored:
-
-- Agentic AI Systems
-- Retrieval-Augmented Generation (RAG)
-- Semantic Search
-- Vector Databases
-- Embedding Models
-- Document Intelligence Systems
-- FastAPI Development
-- React Frontend Development
-- Full-Stack AI Application Development
-- LLM Integration
+Added a dedicated Context Evaluator to verify the sufficiency of retrieved evidence before generation.
 
 ---
 
-## 💼 Industry-Relevant Skills
+## Iterative Retrieval
 
-- Artificial Intelligence
-- Machine Learning
-- Agentic AI
-- Retrieval-Augmented Generation (RAG)
-- Semantic Search
-- Vector Databases
-- ChromaDB
-- FastAPI
-- Python Development
-- React.js
-- API Development
-- Prompt Engineering
-- LLM Applications
-- Full-Stack Development
-- Git & GitHub
+Traditional RAG performs retrieval only once.
+
+### Solution
+
+Introduced a Reasoning Agent capable of deciding whether another retrieval iteration is required.
 
 ---
 
-## 🔮 Future Enhancements
+# Future Roadmap (V2)
 
-- Multi-document querying
-- PDF, DOCX, and TXT support
-- Citation-based responses
-- Hybrid Search (Keyword + Semantic)
-- Memory-enabled conversations
-- Multi-agent orchestration
-- Cloud deployment
+Planned improvements include:
+
+* Hybrid Search (Dense + BM25)
+* Metadata-aware Retrieval
+* Semantic Chunking
+* Adaptive Chunk Sizes
+* Conversation Memory
+* User Authentication
+* Multi-user Support
+* Docker Deployment
+* Redis Caching
+* Streaming Responses
+* Source Highlighting
+* Confidence Scoring
+* Performance Monitoring
+* Production Logging
 
 ---
 
-## 👨‍💻 Author
+# Goals
 
-**Chetanaditya Neelam**
+This project aims to explore how modular AI agents can improve Retrieval-Augmented Generation by separating responsibilities across retrieval, reasoning, evaluation, and generation while keeping the entire system fully local and privacy-friendly.
 
-Engineering Student | AI/ML Enthusiast | Full-Stack AI Developer
+---
 
-Connect with me on LinkedIn and GitHub to explore more AI and Machine Learning projects.
+# Acknowledgements
+
+Built using:
+
+* Ollama
+* Qwen 2.5
+* ChromaDB
+* FastAPI
+* React
+* Sentence Transformers
+* CrossEncoder (MS MARCO)
+* MXBAI-Embed-Large
+
+---
+
+# License
+
+This project is intended for educational, research, and portfolio purposes.
