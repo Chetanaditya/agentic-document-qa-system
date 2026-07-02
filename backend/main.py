@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
+from routes.auth import router as auth_router
 
 # Routers
 from routes.upload import router as upload_router
@@ -44,6 +45,7 @@ CHROMA_DIR.mkdir(parents=True, exist_ok=True)
 app.include_router(upload_router)
 app.include_router(chat_router)
 app.include_router(document_chat_router)
+app.include_router(auth_router)
 
 # --------------------------------------------------
 # Health Check

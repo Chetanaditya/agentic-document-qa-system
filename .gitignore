@@ -25,3 +25,6 @@ frontend/dist/
 #os files
 .DS_store
 Thumbs.db
+
+#SQLLite DATABASU
+users.db
